@@ -20,11 +20,12 @@ and provide valid example requests for both endpoints.
 
 **Branch name:** `docs/89-api-request-schemas`
 
-**Setup confirmation:** [ ] App runs locally at http://localhost:5173
+**Setup confirmation:** [x] App runs locally at http://localhost:5173
 
-Setup is not yet confirmed. The current environment has Python 3.10.12 instead
-of the required Python 3.11+ and does not have Docker or Docker Compose, so
-`make setup` and `make run` cannot be completed here yet.
+Setup was completed in WSL with Python 3.11.15 and Docker Desktop. `make setup`
+completed successfully, `make run` started the FastAPI and Vite development
+servers, and a request to `http://localhost:5173` returned the PathReview HTML
+page titled "PathReview - AI Portfolio Review Assistant."
 
 **Cohort ledger:** [x] Issue added to cohort ledger
 
@@ -59,6 +60,12 @@ Completed:
 - Read `docs/CONTRIBUTING.md` for branch and commit conventions.
 - Inspected `docs/API.md`, the profile/review routes, and their Pydantic schemas.
 - Reproduced the documentation gap described in issue #89.
+- Installed Python 3.11.15 in WSL and created the project virtual environment.
+- Started the PostgreSQL, Redis, and ChromaDB Docker services.
+- Ran `make setup` successfully, including dependency installation, database
+  migrations, seed data, pre-commit setup, and frontend dependency installation.
+- Ran `make run` and verified that `http://localhost:5173` serves the PathReview
+  frontend and that the FastAPI application starts on port 8000.
 
 Environment commands checked:
 
@@ -71,18 +78,30 @@ docker compose version
 make --version
 ```
 
-Observed environment:
+Initial environment:
 
 - Python 3.10.12
 - Node.js 22.22.2
 - npm 10.9.7
 - GNU Make 4.3
-- Docker and Docker Compose are not installed
+- Docker was not initially accessible from the WSL execution environment
+
+Completed setup environment:
+
+- Python 3.11.15 virtual environment
+- Docker Engine 27.5.1 through Docker Desktop WSL integration
+- PostgreSQL 16, Redis 7, and ChromaDB 0.4.22 containers
+- FastAPI development server on port 8000
+- Vite development server on port 5173
+
+The repository's `/health` endpoint returned HTTP 503 because its PostgreSQL and
+Redis probes reported unhealthy even though the containers and application were
+running. The repository already tracks these health-check implementation bugs
+in issues #154 and #155; they are unrelated to issue #89. ChromaDB reported
+healthy, application startup completed, and the frontend page loaded correctly.
 
 ### Next steps
 
-- Complete project setup in an environment with Python 3.11+ and Docker, then
-  update the setup confirmation above.
 - Update `docs/API.md` with accurate request documentation and examples.
 - Review the rendered Markdown and compare every field with the source schemas.
 - Record implementation decisions and validation results in this journal.
