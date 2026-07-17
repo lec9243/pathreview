@@ -61,7 +61,9 @@ Completed:
 - Inspected `docs/API.md`, the profile/review routes, and their Pydantic schemas.
 - Reproduced the documentation gap described in issue #89.
 - Installed Python 3.11.15 in WSL and created the project virtual environment.
-- Started the PostgreSQL, Redis, and ChromaDB Docker services.
+- Started the PostgreSQL, Redis, and ChromaDB Docker services; PostgreSQL and
+  Redis remained healthy, while the pinned ChromaDB image exited with an
+  upstream NumPy compatibility error described below.
 - Ran `make setup` successfully, including dependency installation, database
   migrations, seed data, pre-commit setup, and frontend dependency installation.
 - Ran `make run` and verified that `http://localhost:5173` serves the PathReview
@@ -90,15 +92,19 @@ Completed setup environment:
 
 - Python 3.11.15 virtual environment
 - Docker Engine 27.5.1 through Docker Desktop WSL integration
-- PostgreSQL 16, Redis 7, and ChromaDB 0.4.22 containers
+- Healthy PostgreSQL 16 and Redis 7 containers
+- ChromaDB 0.4.22 image pulled, with a startup compatibility issue noted below
 - FastAPI development server on port 8000
 - Vite development server on port 5173
 
 The repository's `/health` endpoint returned HTTP 503 because its PostgreSQL and
-Redis probes reported unhealthy even though the containers and application were
-running. The repository already tracks these health-check implementation bugs
-in issues #154 and #155; they are unrelated to issue #89. ChromaDB reported
-healthy, application startup completed, and the frontend page loaded correctly.
+Redis probes reported unhealthy even though both containers and the application
+were running. The repository already tracks these health-check implementation
+bugs in issues #154 and #155; they are unrelated to issue #89. The health route
+reported ChromaDB as healthy, but the pinned `chromadb/chroma:0.4.22` container
+later exited because its startup installed NumPy 2.2.6, which removed the
+`np.float_` attribute used by that ChromaDB version. Despite these pre-existing
+service issues, FastAPI completed startup and the frontend page loaded correctly.
 
 ### Next steps
 
