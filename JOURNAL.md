@@ -1,5 +1,31 @@
 # PathReview Contribution Journal
 
+## Week 8 — Reproduction & solution planning
+
+**Reproduction commit link:**
+https://github.com/lec9243/pathreview/commit/28884e0ecea8cd5ae27d5886bd5259dd17704a1a
+
+**Reproduction summary:**
+I added a failing unit test, `tests/unit/test_api_doc_reproduction.py`, that reads
+`docs/API.md` and asserts it documents the request bodies of `POST /profiles`
+(`github_username`, `portfolio_url`, `resume_file`, and the `multipart/form-data`
+content type) and `POST /reviews` (the `application/json` body). All three
+assertions fail against the current documentation, confirming the gap is real and
+pinning exactly which fields and content types are missing. The expected field
+names were taken from `api/routes/profiles.py`, `api/schemas/profile.py`,
+`api/routes/reviews.py`, and `api/schemas/review.py`.
+
+**PLAN.md link:** https://github.com/lec9243/pathreview/blob/docs/89-api-request-schemas/PLAN.md
+
+**Walkthrough video (recommended):** _(not recorded)_
+
+**Blockers or open questions:**
+- Confirm whether `text/plain` resumes should be documented as officially supported:
+  the route accepts it (`api/routes/profiles.py`) but its docstring says "PDF or
+  Markdown," and the issue title only mentions those two.
+- Confirm the exact bearer-token flow from `POST /auth/login` so the `curl` examples
+  in `docs/API.md` are runnable end to end.
+
 ## Week 7 — Issue selection
 
 **Issue link:** https://github.com/ascherj/pathreview/issues/89
