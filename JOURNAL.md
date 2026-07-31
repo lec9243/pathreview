@@ -1,5 +1,100 @@
 # PathReview Contribution Journal
 
+## Week 9 — Solution building & PR submission
+
+### Check-in 1 (mid-week)
+
+**Current progress:**
+Sub-tasks 1–3 of PLAN.md are done. `docs/API.md` now documents the `POST /profiles`
+request body (`multipart/form-data`; `github_username` ≤255, `portfolio_url` ≤500,
+`resume_file`; all optional) and the `POST /reviews` request body
+(`application/json`; required `profile_id` UUID), each with a field table, a `curl`
+example, and its error paths. Every field name and limit was copied from
+`api/routes/profiles.py`, `api/schemas/profile.py`, `api/routes/reviews.py`, and
+`api/schemas/review.py` rather than written from memory, which is the mitigation
+PLAN.md listed for the documentation-drift risk.
+
+Both Week 8 open questions are now resolved against the source:
+
+- **`text/plain` resumes:** the route's allow-list really is `application/pdf`,
+  `text/markdown`, and `text/plain`, even though its docstring and its 422 message
+  say only "PDF or Markdown." I documented all three, since the reference should
+  describe what the code enforces, and flagged the mismatch for the maintainer.
+- **Bearer-token flow:** `POST /auth/login` uses FastAPI's
+  `OAuth2PasswordRequestForm`, so it takes an `application/x-www-form-urlencoded`
+  body with `username` (the email) and `password` — not JSON, which is what I would
+  have guessed. It returns `{"access_token", "token_type"}`. The `curl` examples use
+  a real token obtained this way, so they are runnable end to end.
+
+Sub-task 4 is done: the three reproduction assertions in
+`tests/unit/test_api_doc_reproduction.py` went from red to green.
+
+**Next steps:**
+Finish sub-task 5 (repo checks against a recorded baseline), extend the reproduction
+file into regression guards so the reference cannot drift back out of sync, then
+open the PR.
+
+**Blockers:**
+None blocking. One thing to work around: the repo has substantial pre-existing
+failures on `main`, so I recorded a baseline *before* touching anything — 56 failed
+/ 375 passed unit tests, 182 ruff errors, 103 mypy errors — to prove afterwards that
+my change adds none. Also, `make check` runs `black .` in **write** mode, which would
+reformat 52 pre-existing files and bury a small docs change in unrelated churn, so I
+run `black` only on the file I touched plus `make lint` and `make typecheck` in full.
+
+---
+
+### Check-in 2 (end of week)
+
+**PR link:** https://github.com/ascherj/pathreview/pull/423
+
+**Branch:** `docs/89-api-request-schemas` — this working branch, which holds
+JOURNAL.md and PLAN.md. The PR itself is opened from
+`docs/89-api-request-body-schemas`, a branch cut from `upstream/main` carrying only
+the three contribution commits. Course artifacts (JOURNAL.md, PLAN.md) are 245 lines
+that do not belong in the upstream project, and including them would have made the
+PR reviewable only after mentally subtracting them.
+
+**What you built:**
+`docs/API.md` documented `POST /profiles` and `POST /reviews` as one-line summaries
+with no request body, so calling either endpoint meant reading the FastAPI routes and
+Pydantic schemas first. The fix documents both request bodies — content type, a field
+table with types and constraints, a runnable `curl` example, and the error paths —
+plus a short note on obtaining the bearer token from `POST /auth/login`, without which
+neither example runs. It is documentation-only: no application code, schema, or API
+behavior changed.
+
+**Tests added or updated:**
+`tests/unit/test_api_doc_reproduction.py` only. The three Week 8 reproduction
+assertions (profiles fields, `multipart/form-data`, `application/json`) now pass, and
+I added five regression assertions: the accepted resume MIME types, the 255/500 length
+limits, `profile_id` plus the JSON content type scoped to the Reviews section, the
+bearer requirement, and an example request per endpoint. Assertions that a term
+elsewhere in the file could satisfy are scoped to one section, so `profile_id`
+documented as a *path* parameter under Profiles cannot stand in for the `POST /reviews`
+request body. 8 tests, all passing.
+
+**Self-review confirmation:** [x] make check passes  [x] make test-unit passes
+
+Both boxes use the "introduces no new failures" definition, since this codebase has
+documented pre-existing failures:
+
+| Check | Before my changes | After |
+| --- | --- | --- |
+| `make test-unit` | 56 failed, 375 passed | 53 failed, 383 passed |
+| `make lint` (ruff) | 182 errors | 182 errors |
+| `make typecheck` (mypy) | 103 errors in 26 files | 103 errors in 26 files |
+
+Comparing the *sets* of failing test IDs before and after, the only difference is my
+three reproduction tests going red to green; nothing newly fails. The file I touched
+passes `ruff check` and `black --check` individually. All of this is documented in the
+PR description as well.
+
+**Draft PR feedback received from:** none — I opened the PR directly as ready for
+review rather than running a draft round first.
+
+---
+
 ## Week 8 — Reproduction & solution planning
 
 **Reproduction commit link:**
