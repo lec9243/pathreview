@@ -1,5 +1,136 @@
 # PathReview Contribution Journal
 
+## Week 10 — Iteration & reflection
+
+### Reviewer feedback
+
+**Feedback received:** [ ] Yes  [x] No — still awaiting review
+
+**Summary of feedback:**
+None. PR #423 has been open since 2026-07-31 and as of 2026-08-06 has no review
+comments, no submitted reviews, and no requested reviewers. Nothing has been
+merged or closed. Per the Summer 2026 course note, reviewer feedback is not part
+of this term, so this is the expected outcome rather than a stalled PR.
+
+**How you responded:**
+No response was required. I left the PR open and unchanged rather than pushing
+speculative edits to a branch nobody had commented on. The one thing I would
+raise if a maintainer does pick it up is already written into the PR
+description: `api/routes/profiles.py` accepts `text/plain` resumes, but that
+route's own docstring and its 422 message both say only "PDF or Markdown." I
+documented the behavior the code enforces and flagged the mismatch rather than
+silently picking one side, because deciding which of the two is wrong is the
+maintainer's call, not mine.
+
+---
+
+### Reflection
+
+**What was harder than you expected?**
+
+Getting to the point where I could trust what I wrote was harder than writing it.
+I picked a Tier 1 documentation issue and estimated 2–3 hours, which was roughly
+right for the prose — and almost irrelevant to the actual cost. Week 7 setup ate
+far more: WSL shipped Python 3.10.12 and the project needs 3.11, Docker wasn't
+reachable from my execution environment at first, the pinned
+`chromadb/chroma:0.4.22` image installs NumPy 2.2.6 at startup and dies because
+that release removed `np.float_`, and `/health` returned 503 the whole time
+against healthy Postgres and Redis containers because of health-check bugs the
+repo already tracks in issues #154 and #155.
+
+The genuinely hard part, though, was telling my breakage apart from the repo's.
+`main` already fails 56 unit tests, 182 ruff checks, and 103 mypy checks in 26
+files. On my own project a red test suite is a signal; here it's the baseline,
+and it meant "did I break something" was unanswerable by looking at the output.
+I had to record the failure sets before touching anything and diff the sets
+afterward — the only difference being my three reproduction tests going red to
+green. I also didn't expect the repo's own tooling to be a hazard: `make check`
+runs `black .` in **write** mode, so the sanctioned pre-submit command would have
+reformatted 52 files I never opened and buried a one-file docs change in churn.
+I ran `black` on my file alone plus `make lint` and `make typecheck` in full.
+
+**What did you learn about working in a large codebase?**
+
+That there is no single source of truth, and finding out which artifact is
+authoritative is part of the work. For the resume upload, the route's allow-list,
+the route's docstring, and the 422 error message gave two different answers to
+"what file types are accepted" — three places, two answers, all shipped. In my
+own projects that question never comes up because I hold the answer in my head.
+Here I had to decide that the enforced behavior wins and that the disagreement
+itself is worth reporting.
+
+The second lesson was that assumptions are expensive. I assumed `POST /auth/login`
+took a JSON body; it uses FastAPI's `OAuth2PasswordRequestForm`, so it's
+`application/x-www-form-urlencoded` with `username` and `password`. Had I written
+the `curl` examples from that assumption they would have looked completely
+reasonable and failed for every reader. The rule I ended up working under — copy
+every field name and limit out of `api/routes/`, `api/schemas/`, don't write one
+from memory — was in PLAN.md as a documentation-drift mitigation, but its real
+value was catching me.
+
+Third: what the reviewer sees is part of the deliverable. My working branch
+carries 245 lines of JOURNAL.md and PLAN.md that mean nothing to this project.
+Opening the PR from that branch would have forced a maintainer to mentally
+subtract course homework from the diff. Cutting a separate branch from
+`upstream/main` with only the three real commits wasn't required by anyone; it's
+just the difference between a one-file diff and a three-file one.
+
+**How did AI tools help — and where did they fall short?**
+
+It was most useful for orientation and for mechanical drafting. Locating the
+relevant routes and Pydantic schemas in an unfamiliar FastAPI project, getting
+the Markdown field tables and the test scaffolding into shape, working out the
+baseline-diffing approach for a repo that's already red — all of that went much
+faster than it would have alone.
+
+It fell short in exactly the place that mattered most: anything that required
+knowing what *this* code actually does. Asked to document the resume upload, a
+model produces a confident, idiomatic, entirely plausible answer — "PDF or
+Markdown," matching the docstring — and it's wrong, because the allow-list has a
+third entry. Same with the login flow: JSON is the obvious guess and the obvious
+guess is incorrect. Neither error is detectable by reading the generated text;
+both are obvious after ten seconds in the source file. The failure mode isn't
+that AI didn't know, it's that not knowing and knowing look identical on output.
+That's the reason I ran the `curl` examples against a real token instead of
+trusting that they looked right, and it's why the PLAN.md mitigation was written
+as "copy from source" rather than "check the output carefully."
+
+**What would you do differently if you started over?**
+
+Cut the clean PR branch on day one instead of at submission time. I only split
+`docs/89-api-request-body-schemas` off `upstream/main` when I was about to open
+the PR and realized what the diff looked like; keeping course artifacts out of
+the contribution branch from the first commit would have made that a non-event
+instead of a scramble, and it's why I now have two branches to keep straight.
+
+I'd also record the test/lint/typecheck baseline during Week 7 setup rather than
+Week 9. I needed those numbers under deadline pressure to prove a negative, and
+capturing them while the repo was still untouched would have been thirty seconds
+of work at a point when I had time.
+
+Finally, I carried both Week 8 open questions — `text/plain` support and the
+bearer-token flow — into Week 9 as blockers, when both were answerable by
+reading two files. I flagged them as questions because they felt like decisions
+that needed someone else's input; they were just things I hadn't looked up yet.
+I'd be quicker to separate "needs a maintainer" from "needs me to open the file."
+
+**What are you most proud of from this module?**
+
+The regression tests, not the documentation. Issue #89 asked for prose, and prose
+rots — the whole reason the gap existed is that `docs/API.md` drifted away from
+routes that kept changing. So I extended the Week 8 reproduction file into eight
+assertions that pin the specific things most likely to drift: the accepted MIME
+types, the 255 and 500 character limits, the content type per endpoint, the
+bearer requirement, and a worked example for each. The detail I'm happiest with
+is scoping: `profile_id` appears in `docs/API.md` as a path parameter under
+Profiles, so a naive assertion would pass on the wrong occurrence and silently
+stop guarding anything. Scoping it to the Reviews section means the test fails
+when the request body is what goes missing. If the docs drift again, something
+goes red — which is more than the issue asked for and the part most likely to
+still matter after the PR is forgotten.
+
+---
+
 ## Week 9 — Solution building & PR submission
 
 ### Check-in 1 (mid-week)
